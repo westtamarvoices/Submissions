@@ -57,6 +57,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .points{display:flex;flex-direction:column;gap:6px}
 .point{display:flex;gap:10px;align-items:flex-start;font-size:15px}
 .point input{margin-top:5px;accent-color:var(--accent)}
+#otherTxt{margin-left:26px;width:calc(100% - 26px)}
 .stance{display:flex;flex-wrap:wrap;gap:8px}
 .stance label{font-weight:500;margin:0;display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
 .stance input{accent-color:var(--accent)}
@@ -247,7 +248,14 @@ footer a{color:var(--accent)}
       const c=document.createElement("input"); c.type="checkbox"; c.id="pt"+i; c.value=p;
       const s=document.createElement("span"); s.textContent=p; l.append(c,s); pts.append(l);
     });
-    $("pointsWrap").hidden = !(it.points&&it.points.length);
+    const ol=document.createElement("label"); ol.className="point";
+    const oc=document.createElement("input"); oc.type="checkbox"; oc.id="ptOther";
+    const os=document.createElement("span"); os.textContent="Other"; ol.append(oc,os); pts.append(ol);
+    const ot=document.createElement("input"); ot.type="text"; ot.id="otherTxt"; ot.hidden=true;
+    ot.placeholder="Describe your other concern in a few words"; ot.setAttribute("aria-label","Other concern");
+    oc.onchange=()=>{ ot.hidden=!oc.checked; if(oc.checked) ot.focus(); };
+    pts.append(ot);
+    $("pointsWrap").hidden = false;
     $("lodge").textContent = it.lodgeTo || "wtc@wtc.tas.gov.au";
     updateSubject();
   }
@@ -259,6 +267,12 @@ footer a{color:var(--accent)}
     const prop = it.custom ? $("cProp").value.trim() : (it.title||"");
     const closes = it.custom ? $("cClose").value : (it.closes||"");
     return {ref,loc,prop,closes,kind:it.kind||"planning"};
+  }
+  function getTicked(){
+    const out=[...document.querySelectorAll("#points input[type=checkbox]:checked")].filter(c=>c.id!=="ptOther").map(c=>c.value);
+    const oc=$("ptOther"), ot=$("otherTxt");
+    if(oc && oc.checked && ot && ot.value.trim()) out.push(ot.value.trim().replace(/[.]+$/,""));
+    return out;
   }
   function stance(){ return (document.querySelector('input[name=stance]:checked')||{}).value||"comment"; }
   function updateSubject(){
@@ -276,7 +290,7 @@ footer a{color:var(--accent)}
 
   function buildPrompt(){
     const f=issueFacts();
-    const ticked=[...document.querySelectorAll("#points input:checked")].map(c=>c.value);
+    const ticked=getTicked();
     const kindRules = {
       planning:"This is a representation on an advertised planning application under the Land Use Planning and Approvals Act 1993 (Tas). Council can only consider planning matters, such as compliance with the Tasmanian Planning Scheme standards, overshadowing, overlooking and privacy, bulk and scale, setbacks, traffic and access, parking, stormwater, noise, character of the area, and environmental or heritage values. Leave out anything that is not a planning matter (property values, the identity or motives of the applicant, construction nuisance that is not a planning issue, personal disputes). Refer to the application number and site address in the opening line.",
       plan:"This is a submission on a draft council plan or strategy. Say what stands out, what council should prioritise, what is missing, and what council should start, stop or keep doing, drawing only on the resident's points.",
@@ -376,7 +390,7 @@ footer a{color:var(--accent)}
   function templateDraft(){
     if(!selected){ setStatus("Choose an issue in step 1 first.", true); return; }
     const f=issueFacts(), st=stance();
-    const ticked=[...document.querySelectorAll("#points input:checked")].map(c=>lc(c.value));
+    const ticked=getTicked().map(lc);
     const own=$("own").value.trim();
     const conn=lc($("conn").value);
     const name=$("name").value.trim()||"[Your name]", addr=$("addr").value.trim()||"[Your street address]", email=$("email").value.trim()||"[Your email]";
@@ -423,14 +437,14 @@ footer a{color:var(--accent)}
   const FALLBACK = [
     {id:"question-time", kind:"question", title:"A question for public question time", location:"Ordinary council meeting, third Tuesday of the month", order:20,
      summary:"Council allows up to three questions on any one subject in a 30 minute public question time. You must give your name and address. Lodging in writing ahead of the meeting gives council time to prepare an answer.",
-     points:["Spending and value for ratepayers","Roads, footpaths and trails","Planning and growth in my town","Transparency and how decisions are made","Services such as waste, parks and halls"]},
+     points:["Spending and value for ratepayers","Rates, fees and charges","Roads, footpaths and trails","Planning and growth in my town","Development approvals and enforcement","Transparency and how decisions are made","Community consultation","Services such as waste, parks and halls","Environment, waterways and bushland","Bushfire and emergency preparedness"]},
     {id:"new-council-priorities", kind:"letter", title:"Our priorities for the incoming council", location:"All councillors", order:30,
      summary:"A courteous letter to the new council after the October 2026 election, setting out what matters most in your town.",
-     points:["Better community consultation","Footpaths, trails and safe walking routes","Managing growth and housing","Keeping rates fair","Protecting the kanamaluka / Tamar River and bushland"]}
+     points:["Better community consultation","Open and transparent decision making","Footpaths, trails and safe walking routes","Roads, traffic and parking","Public transport links","Managing growth and housing","Keeping rates fair","Protecting the kanamaluka / Tamar River and bushland","Services for young people and older residents","Support for local business and tourism","Parks, playgrounds and sporting facilities","Bushfire and emergency preparedness"]}
   ];
 
   const CUSTOM = {id:"_custom", custom:true, kind:"planning", title:"Another planning application", summary:"Enter the details from the council notice, site sign or neighbour letter.", order:999,
-    points:["Overshadowing of neighbouring homes or yards","Overlooking and loss of privacy","Height, bulk or scale out of keeping with the area","Setbacks from boundaries","Traffic, access or parking","Stormwater or drainage","Noise","Loss of trees, vegetation or habitat","Character of the street or township"]};
+    points:["Does not meet the planning scheme standards for the zone","Overshadowing of neighbouring homes or yards","Overlooking and loss of privacy","Height, bulk or scale out of keeping with the area","Setbacks from boundaries","Visual impact on the streetscape or landscape","Character of the street or township","Traffic, access or road safety","Parking","Safety for pedestrians and cyclists","Stormwater, drainage or flooding","Water, sewer or other infrastructure capacity","Noise","Lighting or glare","Hours of operation or commercial activity","Loss of trees, vegetation or habitat","Impact on waterways, wetlands or the river","Bushfire risk","Coastal erosion or landslip hazard","Heritage values","Loss of agricultural land"]};
 
   // Admin
   async function saveIssue(){
