@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="An independent volunteer tool to help West Tamar residents write their own submissions to council.">
+<title>West Tamar Submission Helper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a single calm column, four numbered steps that follow the real order of writing a submission, estuary palette */
+:root{
+  --bg:#eef3f3; --surface:#ffffff; --ink:#16272c; --muted:#56696d; --line:#d3dedf;
+  --accent:#1d6a73; --accent-ink:#ffffff; --accent-soft:#dcecee; --wattle:#a8771c; --wattle-soft:#f6ecd6;
+  --danger:#a33a2a;
+  --display:"Young Serif", Georgia, "Times New Roman", serif;
+  --body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e191c; --surface:#15242a; --ink:#e2ebec; --muted:#97aaad; --line:#27393e;
+  --accent:#62b3bc; --accent-ink:#0a1518; --accent-soft:#1c3439; --wattle:#d9a94e; --wattle-soft:#2d2716;
+  --danger:#e07a68; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e191c; --surface:#15242a; --ink:#e2ebec; --muted:#97aaad; --line:#27393e;
+  --accent:#62b3bc; --accent-ink:#0a1518; --accent-soft:#1c3439; --wattle:#d9a94e; --wattle-soft:#2d2716;
+  --danger:#e07a68; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
+.wrap{max-width:720px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+header{display:flex;flex-direction:column;gap:10px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,6vw,40px);line-height:1.15;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0;line-height:1.25;text-wrap:balance}
+p{margin:0}
+.lede{color:var(--muted);max-width:60ch}
+.notice{background:var(--wattle-soft);border-left:3px solid var(--wattle);padding:12px 14px;font-size:14px;border-radius:2px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.step-head{display:flex;gap:12px;align-items:baseline}
+.num{font-family:var(--display);color:var(--accent);font-size:22px;min-width:1.2em}
+.hint{font-size:14px;color:var(--muted)}
+.issues{display:flex;flex-direction:column;gap:8px}
+.issue{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;background:transparent;border:1px solid var(--line);border-radius:8px;padding:12px 14px;color:var(--ink);font:inherit;cursor:pointer}
+.issue:hover{border-color:var(--accent)}
+.issue[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.issue .t{font-weight:600}
+.issue .m{font-size:13px;color:var(--muted)}
+.chip{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:3px 7px;border-radius:4px;background:var(--accent-soft);color:var(--accent);white-space:nowrap;margin-top:2px}
+.chip.soon{background:var(--wattle-soft);color:var(--wattle)}
+.issue-body{min-width:0;display:flex;flex-direction:column;gap:2px}
+label{font-weight:600;font-size:14px;display:block;margin-bottom:4px}
+.field{display:flex;flex-direction:column}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.grid2{grid-template-columns:1fr}}
+input[type=text],input[type=email],input[type=date],select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+textarea{resize:vertical;min-height:110px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.points{display:flex;flex-direction:column;gap:6px}
+.point{display:flex;gap:10px;align-items:flex-start;font-size:15px}
+.point input{margin-top:5px;accent-color:var(--accent)}
+.stance{display:flex;flex-wrap:wrap;gap:8px}
+.stance label{font-weight:500;margin:0;display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
+.stance input{accent-color:var(--accent)}
+.btns{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button.primary,button.ghost,a.ghost{font:inherit;font-weight:600;border-radius:6px;padding:10px 16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+button.primary{background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent)}
+button.primary:disabled{opacity:.5;cursor:default}
+button.ghost,a.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+.status{font-size:14px;color:var(--muted)}
+.status.err{color:var(--danger)}
+.out{min-height:320px;font-size:15px;line-height:1.6;background:var(--surface)}
+.sendto{display:grid;grid-template-columns:auto 1fr auto;gap:8px 12px;align-items:center;font-size:14px}
+.sendto code{font-family:var(--body);font-weight:600;word-break:break-all}
+.check{display:flex;flex-direction:column;gap:6px;font-size:14px}
+.check div{display:flex;gap:8px}
+.check div::before{content:"";flex:none;width:7px;height:7px;margin-top:7px;border-radius:50%;background:var(--accent)}
+details.admin{border:1px dashed var(--line);border-radius:10px;padding:14px 16px}
+details.admin summary{cursor:pointer;font-weight:600}
+.admin-body{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.admin-row{display:flex;justify-content:space-between;gap:10px;align-items:center;border-top:1px solid var(--line);padding-top:8px;font-size:14px}
+.admin-row span{min-width:0}
+button.small{font:inherit;font-size:13px;padding:5px 10px;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+button.small.del{color:var(--danger)}
+footer{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:16px}
+footer a{color:var(--accent)}
+.empty{font-size:14px;color:var(--muted);padding:6px 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Independent community tool for West Tamar residents</div>
+    <h1>Write your own submission to West Tamar Council</h1>
+    <p class="lede">Pick an issue, say what matters to you in your own words, and get a clear, well structured draft you can check, edit and send yourself. Nothing you type here is saved.</p>
+    <p class="notice">This tool is run by local volunteers and is not affiliated with or endorsed by West Tamar Council. You are responsible for what you send, so read your draft carefully before lodging it.</p>
+  </header>
+
+  <section class="step" aria-labelledby="s1">
+    <div class="step-head"><span class="num">1</span><h2 id="s1">Choose what you are writing about</h2></div>
+    <div class="issues" id="issues"><p class="empty">Loading current issues…</p></div>
+    <div id="customFields" hidden class="grid2">
+      <div class="field"><label for="cRef">Reference number</label><input type="text" id="cRef" placeholder="e.g. PA 2026/301"></div>
+      <div class="field"><label for="cLoc">Address or plan name</label><input type="text" id="cLoc" placeholder="e.g. 4 Currawong Place, Riverside"></div>
+      <div class="field"><label for="cProp">What is proposed</label><input type="text" id="cProp" placeholder="e.g. secondary residence and shed"></div>
+      <div class="field"><label for="cClose">Closing date</label><input type="date" id="cClose"></div>
+    </div>
+    <p class="hint" id="issueNote" hidden></p>
+  </section>
+
+  <section class="step" aria-labelledby="s2">
+    <div class="step-head"><span class="num">2</span><h2 id="s2">Say what matters to you</h2></div>
+    <div class="field">
+      <label>Your position</label>
+      <div class="stance" role="radiogroup">
+        <label><input type="radio" name="stance" value="object" checked> I object</label>
+        <label><input type="radio" name="stance" value="support"> I support</label>
+        <label><input type="radio" name="stance" value="comment"> I have comments</label>
+      </div>
+    </div>
+    <div class="field" id="pointsWrap" hidden>
+      <label>Concerns you share <span class="hint">(tick any that apply)</span></label>
+      <div class="points" id="points"></div>
+    </div>
+    <div class="field">
+      <label for="own">In your own words</label>
+      <textarea id="own" placeholder="What will this mean for you, your street or your town? Specific, local detail carries the most weight. For example: our kitchen and deck face north over the boundary and would lose winter sun after 2pm."></textarea>
+    </div>
+    <div class="field">
+      <label for="conn">Your connection</label>
+      <select id="conn">
+        <option>Resident of West Tamar</option>
+        <option>Neighbour to the site</option>
+        <option>Ratepayer and property owner</option>
+        <option>Local business owner</option>
+        <option>Member of a local community group</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="step" aria-labelledby="s3">
+    <div class="step-head"><span class="num">3</span><h2 id="s3">Your details</h2></div>
+    <p class="hint">Council needs your name and contact details for a submission to count. Council publishes planning representations in its meeting agenda with your name and street address (phone numbers and emails are removed).</p>
+    <div class="grid2">
+      <div class="field"><label for="name">Full name</label><input type="text" id="name" autocomplete="name"></div>
+      <div class="field"><label for="addr">Street address</label><input type="text" id="addr" autocomplete="street-address"></div>
+      <div class="field"><label for="email">Email</label><input type="email" id="email" autocomplete="email"></div>
+      <div class="field"><label for="phone">Phone <span class="hint">(optional)</span></label><input type="text" id="phone" autocomplete="tel"></div>
+    </div>
+  </section>
+
+  <section class="step" aria-labelledby="s4">
+    <div class="step-head"><span class="num">4</span><h2 id="s4">Draft, check and send</h2></div>
+    <div class="btns">
+      <button class="primary" id="draftBtn">Write my draft with AI</button>
+      <button class="ghost" id="tplBtn">Use a quick template</button>
+      <button class="ghost" id="stopBtn" hidden>Stop</button>
+      <span class="status" id="status"></span>
+    </div>
+    <textarea class="out" id="out" placeholder="Your draft will appear here. You can edit it freely before sending."></textarea>
+    <div class="btns">
+      <button class="ghost" id="copyBtn">Copy draft</button>
+      <button class="ghost" id="redoBtn" hidden>Try a different version</button>
+    </div>
+    <div class="sendto" id="sendto">
+      <span>Send to</span><code id="lodge">wtc@wtc.tas.gov.au</code><button class="small" id="copyEmail">Copy</button>
+      <span>Subject</span><code id="subj">Choose an issue above</code><button class="small" id="copySubj">Copy</button>
+    </div>
+    <div class="check">
+      <strong>Before you send</strong>
+      <div>Check every fact is true and matches what you know firsthand.</div>
+      <div>For planning applications, stick to planning matters. Council cannot consider things like who the applicant is or property values.</div>
+      <div>Talk about the proposal, not people. Leave out criticism of named individuals.</div>
+      <div>Lodge before the closing time. Email counts once council's receipt arrives.</div>
+      <div>Change the wording so it sounds like you. Personal letters carry more weight than copies.</div>
+    </div>
+  </section>
+
+  <details class="admin" id="admin" hidden>
+    <summary>Manage issues</summary>
+    <div class="admin-body">
+      <div class="grid2">
+        <div class="field"><label for="aTitle">Title</label><input type="text" id="aTitle"></div>
+        <div class="field"><label for="aKind">Type</label>
+          <select id="aKind"><option value="planning">Planning application</option><option value="plan">Draft plan or strategy</option><option value="letter">Letter to councillors</option><option value="question">Public question time</option></select></div>
+        <div class="field"><label for="aRef">Reference</label><input type="text" id="aRef"></div>
+        <div class="field"><label for="aLoc">Location</label><input type="text" id="aLoc"></div>
+        <div class="field"><label for="aClose">Closes</label><input type="date" id="aClose"></div>
+        <div class="field"><label for="aLodge">Lodge to</label><input type="text" id="aLodge" value="wtc@wtc.tas.gov.au"></div>
+      </div>
+      <div class="field"><label for="aSummary">Short summary</label><textarea id="aSummary" style="min-height:70px"></textarea></div>
+      <div class="field"><label for="aPoints">Suggested concerns, one per line</label><textarea id="aPoints"></textarea></div>
+      <div class="field"><label for="aLink">Council page link</label><input type="text" id="aLink"></div>
+      <div class="btns"><button class="primary" id="aSave">Add issue</button><span class="status" id="aStatus"></span></div>
+      <div id="aList"></div>
+    </div>
+  </details>
+
+  <footer>
+    <p>Council's guide to making a valid representation: <a href="https://www.wtc.tas.gov.au/making-a-representation/" target="_blank" rel="noopener">wtc.tas.gov.au/making-a-representation</a>. Current planning applications: <a href="https://www.wtc.tas.gov.au/advertised-planning-applications/" target="_blank" rel="noopener">wtc.tas.gov.au/advertised-planning-applications</a>.</p>
+    <p>This page does not store or send your details or your text. Your draft is built entirely on your own device. You are the author of anything you send. This is general information, not legal advice.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const KIND = {planning:"Planning application", plan:"Draft plan", letter:"Letter", question:"Question time"};
+  let issues = [], selected = null, db = null, sample = null, ctl = null, version = 0;
+
+  const fmt = d => { if(!d) return ""; const x = new Date(d+"T12:00:00"); return isNaN(x) ? d : x.toLocaleDateString("en-AU",{day:"numeric",month:"long",year:"numeric"}); };
+  const today = () => { const n=new Date(); return n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0"); };
+  const daysLeft = d => d ? Math.round((new Date(d+"T12:00:00") - new Date(today()+"T12:00:00"))/864e5) : null;
+
+  function renderIssues(){
+    const box = $("issues"); box.textContent = "";
+    const open = issues.filter(i => i.active !== false && (!i.closes || i.closes >= today()))
+                       .sort((a,b)=>(a.order??50)-(b.order??50) || String(a.closes||"9").localeCompare(String(b.closes||"9")));
+    if(!open.length){ const p=document.createElement("p"); p.className="empty"; p.textContent="No issues are listed yet. They will appear here as consultations open."; box.append(p); return; }
+    for(const it of open){
+      const b=document.createElement("button"); b.className="issue"; b.type="button";
+      b.setAttribute("aria-pressed", selected && selected.id===it.id ? "true":"false");
+      const dl = daysLeft(it.closes);
+      const chip=document.createElement("span"); chip.className="chip"+(dl!==null&&dl<=3?" soon":""); chip.textContent = KIND[it.kind]||"Issue";
+      const body=document.createElement("span"); body.className="issue-body";
+      const t=document.createElement("span"); t.className="t"; t.textContent=it.title;
+      const m=document.createElement("span"); m.className="m";
+      m.textContent = [it.location, it.closes ? ("Closes "+fmt(it.closes)+(dl!==null&&dl<=7?(dl===0?" (today)":" ("+dl+" day"+(dl===1?"":"s")+" left)"):"")) : ""].filter(Boolean).join(" · ") || it.summary || "";
+      body.append(t,m);
+      b.append(chip,body);
+      b.onclick=()=>select(it);
+      box.append(b);
+    }
+  }
+
+  function select(it){
+    selected = it; renderIssues();
+    const custom = !!it.custom;
+    $("customFields").hidden = !custom;
+    const note = $("issueNote");
+    note.hidden = !it.summary; note.textContent = it.summary || "";
+    if(it.link){ note.hidden=false; note.textContent=(it.summary?it.summary+" ":"")+"Details: "+it.link; }
+    const pts = $("points"); pts.textContent="";
+    (it.points||[]).forEach((p,i)=>{
+      const l=document.createElement("label"); l.className="point";
+      const c=document.createElement("input"); c.type="checkbox"; c.id="pt"+i; c.value=p;
+      const s=document.createElement("span"); s.textContent=p; l.append(c,s); pts.append(l);
+    });
+    $("pointsWrap").hidden = !(it.points&&it.points.length);
+    $("lodge").textContent = it.lodgeTo || "wtc@wtc.tas.gov.au";
+    updateSubject();
+  }
+
+  function issueFacts(){
+    const it = selected||{};
+    const ref = it.custom ? $("cRef").value.trim() : (it.ref||"");
+    const loc = it.custom ? $("cLoc").value.trim() : (it.location||"");
+    const prop = it.custom ? $("cProp").value.trim() : (it.title||"");
+    const closes = it.custom ? $("cClose").value : (it.closes||"");
+    return {ref,loc,prop,closes,kind:it.kind||"planning"};
+  }
+  function stance(){ return (document.querySelector('input[name=stance]:checked')||{}).value||"comment"; }
+  function updateSubject(){
+    if(!selected){ $("subj").textContent="Choose an issue above"; return; }
+    const f=issueFacts(); const s={object:"Representation opposing",support:"Representation supporting",comment:"Representation on"}[stance()];
+    let subj;
+    if(f.kind==="planning") subj = s+" "+[f.ref||"planning application", f.loc].filter(Boolean).join(", ");
+    else if(f.kind==="question") subj = "Question for public question time"+(f.prop?": "+f.prop:"");
+    else if(f.kind==="letter") subj = "Letter to councillors: "+(f.prop||"community priorities");
+    else subj = "Submission on "+(f.prop||"draft plan");
+    $("subj").textContent = subj;
+  }
+  ["cRef","cLoc","cProp","cClose"].forEach(id=>$(id).addEventListener("input",updateSubject));
+  document.querySelectorAll('input[name=stance]').forEach(r=>r.addEventListener("change",updateSubject));
+
+  function buildPrompt(){
+    const f=issueFacts();
+    const ticked=[...document.querySelectorAll("#points input:checked")].map(c=>c.value);
+    const kindRules = {
+      planning:"This is a representation on an advertised planning application under the Land Use Planning and Approvals Act 1993 (Tas). Council can only consider planning matters, such as compliance with the Tasmanian Planning Scheme standards, overshadowing, overlooking and privacy, bulk and scale, setbacks, traffic and access, parking, stormwater, noise, character of the area, and environmental or heritage values. Leave out anything that is not a planning matter (property values, the identity or motives of the applicant, construction nuisance that is not a planning issue, personal disputes). Refer to the application number and site address in the opening line.",
+      plan:"This is a submission on a draft council plan or strategy. Say what stands out, what council should prioritise, what is missing, and what council should start, stop or keep doing, drawing only on the resident's points.",
+      letter:"This is a courteous letter to elected councillors raising community priorities. Ask for specific, achievable actions. Do not praise or criticise any individual councillor or candidate, and do not refer to any election.",
+      question:"Write up to three short, specific, answerable questions for public question time at a West Tamar Council ordinary meeting, each one sentence where possible, preceded by one or two sentences of context. Questions must be about matters council is responsible for."
+    }[f.kind]||"";
+    const stanceTxt={object:"opposes the proposal",support:"supports the proposal",comment:"wants to make comments, neither clearly for nor against"}[stance()];
+    return [
+      "Write a written submission to West Tamar Council (Tasmania) for a resident, in their own voice.",
+      "",
+      "WHAT IT IS ABOUT",
+      "Item: "+(f.prop||"(not given)"),
+      "Reference: "+(f.ref||"(not given)"),
+      "Location: "+(f.loc||"(not given)"),
+      "Closing date: "+(f.closes?fmt(f.closes):"(not given)"),
+      selected&&selected.summary ? "Background supplied by the organiser: "+selected.summary : "",
+      "",
+      "THE RESIDENT",
+      "Position: the resident "+stanceTxt+".",
+      "Connection: "+$("conn").value,
+      "Concerns they ticked: "+(ticked.length?ticked.join("; "):"none"),
+      "In their own words: "+($("own").value.trim()||"(nothing added)"),
+      "Name: "+($("name").value.trim()||"[Your name]"),
+      "Address: "+($("addr").value.trim()||"[Your address]"),
+      "Email: "+($("email").value.trim()||"[Your email]"),
+      $("phone").value.trim() ? "Phone: "+$("phone").value.trim() : "",
+      "",
+      "RULES",
+      kindRules,
+      "Use only facts the resident has given. Never invent figures, measurements, scheme clause numbers, laws, case names or quotes. Where a specific fact would help but was not given, write a short placeholder in square brackets for the resident to fill in.",
+      "Discuss the proposal or decision, never people. No criticism or speculation about any named person, applicant, councillor or officer. Make no allegations of corruption, dishonesty, bad faith or improper motives, even if the resident's notes suggest them; keep to what can be observed about the proposal.",
+      "Write in Australian English, plain and courteous but firm. Address it to the General Manager, West Tamar Council. 200 to 400 words. Short paragraphs. Do not use dashes as punctuation; use commas and full stops. Do not use headings or bullet points except for numbered questions where asked. Make the wording personal to this resident rather than generic.",
+      "End with the resident's name, address, and email on separate lines.",
+      "Output only the letter. First line must be 'Subject: ' followed by a short subject line, then a blank line, then the letter."
+    ].filter(x=>x!=="").join("\n");
+  }
+
+  const ERR = {
+    not_granted:"Drafting needs your OK to use Claude. Reload the page to be asked again.",
+    sampling_disabled:"Drafting with Claude is not available on this account. You can still write your own submission using the checklist below.",
+    rate_limited:"Too many drafts in a short time. Wait a minute and try again.",
+    session_expired:"Please sign in to Claude again, then try again.",
+    refused:"Claude could not draft this. Try rewording your points.",
+    empty_completion:"No draft came back. Try adding a little more in your own words.",
+    prompt_too_large:"That is too much text. Shorten your own words section."
+  };
+
+  async function draft(fresh){
+    if(!selected){ setStatus("Choose an issue in step 1 first.", true); return; }
+    if(!sample){ setStatus("Drafting is not available in this view. Open the page in Claude to use it.", true); return; }
+    ctl = new AbortController();
+    $("draftBtn").disabled = true; $("stopBtn").hidden=false; $("redoBtn").hidden=true;
+    setStatus("Thinking… this usually takes 10 to 40 seconds.");
+    $("out").value = "";
+    try{
+      const prompt = buildPrompt() + (fresh ? "\n\nVariation "+(++version)+": use a different structure and wording from any earlier version." : "");
+      const opts = {signal:ctl.signal, onText:({text})=>{ $("out").value = stripSubject(text); }};
+      if(fresh) opts.cache = false;
+      const {text, truncated} = await sample(prompt, opts);
+      $("out").value = stripSubject(text);
+      setStatus(truncated ? "The draft was cut short. Check the ending." : "Draft ready. Read it carefully and make it your own.");
+      $("redoBtn").hidden=false;
+    }catch(e){
+      if(e && e.text) $("out").value = stripSubject(e.text);
+      if(e && e.code==="refused") $("out").value="";
+      if(!e || e.code!=="cancelled") setStatus(ERR[e&&e.code]||"Something went wrong. Try again in a moment.", true);
+      else setStatus("Stopped.");
+      if(e && (e.code==="not_granted" || e.code==="sampling_disabled")) noAI();
+    }finally{
+      $("draftBtn").disabled=false; $("stopBtn").hidden=true;
+    }
+  }
+  function stripSubject(t){
+    const m = t.match(/^\s*Subject:\s*(.+)\n/);
+    if(m){ $("subj").textContent = m[1].trim(); return t.slice(m[0].length).replace(/^\s*\n/,""); }
+    return t;
+  }
+  function setStatus(msg, err){ const s=$("status"); s.textContent=msg; s.classList.toggle("err",!!err); }
+
+  async function copy(text, btn){
+    const old = btn.textContent;
+    try{ await navigator.clipboard.writeText(text); btn.textContent="Copied"; }
+    catch(_){ btn.textContent="Select and copy manually"; }
+    setTimeout(()=>btn.textContent=old, 1800);
+  }
+  $("draftBtn").onclick=()=>draft(false);
+  $("redoBtn").onclick=()=>draft(true);
+  $("stopBtn").onclick=()=>ctl&&ctl.abort();
+  $("copyBtn").onclick=e=>{ const v=$("out").value; if(!v.trim()){ $("out").focus(); return;} copy(v, e.currentTarget); };
+  $("copyEmail").onclick=e=>copy($("lodge").textContent, e.currentTarget);
+  $("copySubj").onclick=e=>copy($("subj").textContent, e.currentTarget);
+
+  // Template drafting: works for everyone, no account or AI needed
+  const lc = s => s ? s.charAt(0).toLowerCase()+s.slice(1) : s;
+  const joinList = a => a.length<2 ? (a[0]||"") : a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+  const tidy = s => { s=s.trim(); return s && !/[.!?]$/.test(s) ? s+"." : s; };
+  function templateDraft(){
+    if(!selected){ setStatus("Choose an issue in step 1 first.", true); return; }
+    const f=issueFacts(), st=stance();
+    const ticked=[...document.querySelectorAll("#points input:checked")].map(c=>lc(c.value));
+    const own=$("own").value.trim();
+    const conn=lc($("conn").value);
+    const name=$("name").value.trim()||"[Your name]", addr=$("addr").value.trim()||"[Your street address]", email=$("email").value.trim()||"[Your email]";
+    const phone=$("phone").value.trim();
+    const ownPara = own ? tidy(own) : "[Add a few sentences in your own words about how this affects you, your street or your town. Specific, local detail carries the most weight.]";
+    const P=[];
+    if(f.kind==="planning"){
+      const verb={object:"opposing",support:"in support of",comment:"commenting on"}[st];
+      P.push("Dear General Manager,");
+      P.push("I write as a "+conn+" to make a representation "+verb+" planning application "+(f.ref||"[application number]")+(f.prop?", for "+lc(f.prop):"")+", at "+(f.loc||"[site address]")+".");
+      if(ticked.length) P.push((st==="support"?"I support the application because it addresses ":"My concerns relate to the following planning matters: ")+joinList(ticked)+".");
+      P.push(ownPara);
+      P.push({object:"For these reasons I ask that Council refuse the application or, if it is approved, impose conditions that properly address these matters.",
+              support:"For these reasons I ask that Council approve the application.",
+              comment:"I ask that Council take these matters into account in its assessment of the application."}[st]);
+      P.push("Please confirm receipt of this representation.");
+    } else if(f.kind==="plan"){
+      P.push("Dear General Manager,");
+      P.push("I write as a "+conn+" to make a submission on "+(f.prop||"[name of the plan]")+".");
+      if(ticked.length) P.push("The matters I would most like Council to address in this plan are "+joinList(ticked)+".");
+      P.push(ownPara);
+      P.push("I ask that Council reflect these points in the final version, and I would welcome being kept informed as the plan progresses.");
+    } else if(f.kind==="letter"){
+      P.push("Dear Councillors,");
+      P.push("As a "+conn+", I am writing to share the priorities I would like Council to focus on over the coming term.");
+      if(ticked.length) P.push("The issues that matter most to me are "+joinList(ticked)+".");
+      P.push(ownPara);
+      P.push("I would welcome a response setting out how Council intends to address these matters.");
+    } else {
+      P.push("Dear General Manager,");
+      P.push("I would like to submit the following questions for public question time at the next ordinary meeting of Council.");
+      if(own) P.push("By way of background, "+lc(tidy(own)));
+      P.push("1. [Write your first question here. Keep it to one clear sentence about something Council is responsible for.]\n2. [Optional second question]\n3. [Optional third question]");
+      if(ticked.length) P.push("These questions relate to "+joinList(ticked)+".");
+    }
+    P.push("Yours sincerely,\n\n"+name+"\n"+addr+"\n"+email+(phone?"\n"+phone:""));
+    $("out").value = P.join("\n\n");
+    updateSubject();
+    setStatus("Template draft ready. Replace anything in square brackets and add your own detail before sending.");
+    $("redoBtn").hidden=true;
+  }
+  $("tplBtn").onclick=templateDraft;
+
+  const FALLBACK = [
+    {id:"question-time", kind:"question", title:"A question for public question time", location:"Ordinary council meeting, third Tuesday of the month", order:20,
+     summary:"Council allows up to three questions on any one subject in a 30 minute public question time. You must give your name and address. Lodging in writing ahead of the meeting gives council time to prepare an answer.",
+     points:["Spending and value for ratepayers","Roads, footpaths and trails","Planning and growth in my town","Transparency and how decisions are made","Services such as waste, parks and halls"]},
+    {id:"new-council-priorities", kind:"letter", title:"Our priorities for the incoming council", location:"All councillors", order:30,
+     summary:"A courteous letter to the new council after the October 2026 election, setting out what matters most in your town.",
+     points:["Better community consultation","Footpaths, trails and safe walking routes","Managing growth and housing","Keeping rates fair","Protecting the kanamaluka / Tamar River and bushland"]}
+  ];
+
+  const CUSTOM = {id:"_custom", custom:true, kind:"planning", title:"Another planning application", summary:"Enter the details from the council notice, site sign or neighbour letter.", order:999,
+    points:["Overshadowing of neighbouring homes or yards","Overlooking and loss of privacy","Height, bulk or scale out of keeping with the area","Setbacks from boundaries","Traffic, access or parking","Stormwater or drainage","Noise","Loss of trees, vegetation or habitat","Character of the street or township"]};
+
+  // Admin
+  async function saveIssue(){
+    const t=$("aTitle").value.trim(); if(!t){ $("aStatus").textContent="Add a title."; return; }
+    const doc={title:t, kind:$("aKind").value, ref:$("aRef").value.trim(), location:$("aLoc").value.trim(), closes:$("aClose").value,
+      lodgeTo:$("aLodge").value.trim()||"wtc@wtc.tas.gov.au", summary:$("aSummary").value.trim(),
+      points:$("aPoints").value.split("\n").map(s=>s.trim()).filter(Boolean), link:$("aLink").value.trim(), active:true, order:10};
+    try{ await db.collection("issues").add(doc); $("aStatus").textContent="Added."; ["aTitle","aRef","aLoc","aClose","aSummary","aPoints","aLink"].forEach(id=>$(id).value=""); }
+    catch(e){ $("aStatus").textContent="Could not save: "+(e&&e.message||"try again"); }
+  }
+  function renderAdmin(){
+    const l=$("aList"); l.textContent="";
+    issues.filter(it=>!it.custom).forEach(it=>{
+      const r=document.createElement("div"); r.className="admin-row";
+      const s=document.createElement("span"); s.textContent=it.title+(it.closes?" · closes "+fmt(it.closes):"");
+      const b=document.createElement("button"); b.className="small del"; b.textContent="Remove";
+      b.onclick=async()=>{ if(b.dataset.confirm){ try{ await db.doc("issues/"+it.id).delete(); }catch(_){} } else { b.dataset.confirm="1"; b.textContent="Tap again to remove"; } };
+      r.append(s,b); l.append(r);
+    });
+  }
+  $("aSave").onclick=saveIssue;
+
+  function noAI(){
+    $("draftBtn").hidden=true; $("tplBtn").className="primary"; $("tplBtn").textContent="Write my draft";
+    setStatus("No account needed. Your draft is built from a template you can edit.");
+  }
+  const useFallback = () => { issues = FALLBACK.concat([CUSTOM]); renderIssues(); };
+  async function start(){
+    useFallback();
+    if(!window.claude){ noAI(); return; }
+    claude.use("sample").then(s=>{ sample=s; if(!s) noAI(); });
+    db = await claude.use("db");
+    const user = await claude.use("user");
+    if(user && (user.isOwner() || user.canEdit())) $("admin").hidden=false;
+    if(!db) return;
+    db.collection("issues").onSnapshot(snap=>{
+      issues = (snap.empty ? FALLBACK : snap.docs.map(d=>Object.assign({id:d.id}, d.data()))).concat([CUSTOM]);
+      renderIssues(); renderAdmin();
+    }, useFallback);
+  }
+  start();
+})();
+</script>
+
+</body>
+</html>
