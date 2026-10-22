@@ -160,6 +160,7 @@ footer a{color:var(--accent)}
       <span class="status" id="status"></span>
     </div>
     <textarea class="out" id="out" placeholder="Your draft will appear here. You can edit it freely before sending."></textarea>
+    <p class="status" id="qcheck" hidden></p>
     <div class="btns">
       <button class="ghost" id="copyBtn">Copy draft</button>
       <button class="ghost" id="redoBtn" hidden>Try a different version</button>
@@ -173,6 +174,7 @@ footer a{color:var(--accent)}
       <div>Check every fact is true and matches what you know firsthand.</div>
       <div>For planning applications, stick to planning matters. Council cannot consider things like who the applicant is or property values.</div>
       <div>Talk about the proposal, not people. Leave out criticism of named individuals.</div>
+      <div>For question time, ask no more than three questions, and make each one ask a single thing. Leave out follow ons like "and if so" or "if not".</div>
       <div>Lodge before the closing time. Email counts once council's receipt arrives.</div>
       <div>Change the wording so it sounds like you. Personal letters carry more weight than copies.</div>
     </div>
@@ -236,7 +238,7 @@ footer a{color:var(--accent)}
   }
 
   function select(it){
-    selected = it; renderIssues();
+    selected = it; renderIssues(); $("qcheck").hidden=true;
     const custom = !!it.custom;
     $("customFields").hidden = !custom;
     const note = $("issueNote");
@@ -274,6 +276,20 @@ footer a{color:var(--accent)}
     if(oc && oc.checked && ot && ot.value.trim()) out.push(ot.value.trim().replace(/[.]+$/,""));
     return out;
   }
+  function checkQ(){
+    const el=$("qcheck");
+    if(!selected || selected.kind!=="question"){ el.hidden=true; return; }
+    const t=$("out").value, qs=(t.match(/\?/g)||[]).length, lines=t.split(/\n+/);
+    const multi=lines.some(l=>(l.match(/\?/g)||[]).length>1);
+    const joined=lines.some(l=>/\?/.test(l) && /\b(if so|if not|and (what|how|when|why|who|where|which|will|would|can|could|does|did|is|are|has|have|should))\b|\([a-c]\)/i.test(l));
+    const probs=[];
+    if(qs>3) probs.push("There are "+qs+" questions. Council allows no more than three on one subject, so remove or combine some.");
+    if(multi||joined) probs.push("At least one question seems to ask more than one thing. Split it up or cut it back so each question asks one thing only, otherwise it may be counted as more than one.");
+    if(!qs && !probs.length){ el.hidden=true; return; }
+    el.hidden=false; el.classList.toggle("err", probs.length>0);
+    el.textContent = probs.length ? probs.join(" ") : qs+" question"+(qs===1?"":"s")+", each asking one thing. Within the three question limit.";
+  }
+  $("out").addEventListener("input", checkQ);
   function stance(){ return (document.querySelector('input[name=stance]:checked')||{}).value||"comment"; }
   function updateSubject(){
     if(!selected){ $("subj").textContent="Choose an issue above"; return; }
@@ -295,7 +311,7 @@ footer a{color:var(--accent)}
       planning:"This is a representation on an advertised planning application under the Land Use Planning and Approvals Act 1993 (Tas). Council can only consider planning matters, such as compliance with the Tasmanian Planning Scheme standards, overshadowing, overlooking and privacy, bulk and scale, setbacks, traffic and access, parking, stormwater, noise, character of the area, and environmental or heritage values. Leave out anything that is not a planning matter (property values, the identity or motives of the applicant, construction nuisance that is not a planning issue, personal disputes). Refer to the application number and site address in the opening line.",
       plan:"This is a submission on a draft council plan or strategy. Say what stands out, what council should prioritise, what is missing, and what council should start, stop or keep doing, drawing only on the resident's points.",
       letter:"This is a courteous letter to elected councillors raising community priorities. Ask for specific, achievable actions. Do not praise or criticise any individual councillor or candidate, and do not refer to any election.",
-      question:"Write up to three short, specific, answerable questions for public question time at a West Tamar Council ordinary meeting, each one sentence where possible, preceded by one or two sentences of context. Questions must be about matters council is responsible for."
+      question:"Write questions for public question time at a West Tamar Council ordinary meeting. Strict limits: no more than three questions in total, numbered 1 to 3. Each question is a single sentence that asks exactly one thing and ends with one question mark. Never put a question inside another question: no joined parts with 'and', 'or' or 'also', no follow ons such as 'if so' or 'if not', no lettered sub parts, no lists inside a question. If the resident raises more than three matters, choose the three most important or combine closely related points into one simple question, and never exceed three. Put one or two sentences of context before the questions; the context must not contain questions. Questions must be about matters council is responsible for."
     }[f.kind]||"";
     const stanceTxt={object:"opposes the proposal",support:"supports the proposal",comment:"wants to make comments, neither clearly for nor against"}[stance()];
     return [
@@ -350,7 +366,7 @@ footer a{color:var(--accent)}
       const opts = {signal:ctl.signal, onText:({text})=>{ $("out").value = stripSubject(text); }};
       if(fresh) opts.cache = false;
       const {text, truncated} = await sample(prompt, opts);
-      $("out").value = stripSubject(text);
+      $("out").value = stripSubject(text); checkQ();
       setStatus(truncated ? "The draft was cut short. Check the ending." : "Draft ready. Read it carefully and make it your own.");
       $("redoBtn").hidden=false;
     }catch(e){
@@ -423,11 +439,11 @@ footer a{color:var(--accent)}
       P.push("Dear General Manager,");
       P.push("I would like to submit the following questions for public question time at the next ordinary meeting of Council.");
       if(own) P.push("By way of background, "+lc(tidy(own)));
-      P.push("1. [Write your first question here. Keep it to one clear sentence about something Council is responsible for.]\n2. [Optional second question]\n3. [Optional third question]");
+      P.push("1. [Your first question. One sentence that asks one thing only, about something Council is responsible for.]\n2. [Optional second question. One thing only.]\n3. [Optional third question. One thing only. Three is the limit.]");
       if(ticked.length) P.push("These questions relate to "+joinList(ticked)+".");
     }
     P.push("Yours sincerely,\n\n"+name+"\n"+addr+"\n"+email+(phone?"\n"+phone:""));
-    $("out").value = P.join("\n\n");
+    $("out").value = P.join("\n\n"); checkQ();
     updateSubject();
     setStatus("Template draft ready. Replace anything in square brackets and add your own detail before sending.");
     $("redoBtn").hidden=true;
@@ -436,7 +452,7 @@ footer a{color:var(--accent)}
 
   const FALLBACK = [
     {id:"question-time", kind:"question", title:"A question for public question time", location:"Ordinary council meeting, third Tuesday of the month", order:20,
-     summary:"Council allows up to three questions on any one subject in a 30 minute public question time. You must give your name and address. Lodging in writing ahead of the meeting gives council time to prepare an answer.",
+     summary:"Council allows no more than three questions on any one subject in a 30 minute public question time, and each question should ask one thing only. A question with several parts can be counted as more than one. You must give your name and address. Lodging in writing ahead of the meeting gives council time to prepare an answer.",
      points:["Spending and value for ratepayers","Rates, fees and charges","Roads, footpaths and trails","Planning and growth in my town","Development approvals and enforcement","Transparency and how decisions are made","Community consultation","Services such as waste, parks and halls","Environment, waterways and bushland","Bushfire and emergency preparedness"]},
     {id:"new-council-priorities", kind:"letter", title:"Our priorities for the incoming council", location:"All councillors", order:30,
      summary:"A courteous letter to the new council after the October 2026 election, setting out what matters most in your town.",
